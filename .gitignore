@@ -1,4 +1,11 @@
 /.env
 .env
-.idea
+
 /.idea
+.idea
+
+/services/auth-service/.env
+/services/user-service/.env
+/services/document-service/.env
+/services/calendar-service/.env
+/services/notification-service/.env
