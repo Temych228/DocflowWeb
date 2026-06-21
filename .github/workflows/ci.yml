@@ -1,4 +1,4 @@
-name: DocflowWeb Backend CI
+name: Docflow Backend CI
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
           "document-service",
           "mail-service",
           "notification-service",
-          "user-service"
+          "user-service",
           "task-service"
         ]
 
