@@ -1,4 +1,4 @@
-name: DocflowWeb Backend CI
+name: Docflow Backend CI
 
 on:
   push:
@@ -28,4 +28,4 @@ jobs:
               go work use "$dir"
             fi
           done
-          go vet ./...
+          go vet all
