@@ -21,8 +21,7 @@ jobs:
           "document-service",
           "mail-service",
           "notification-service",
-          "user-service",
-          "task-service"
+          "user-service"
         ]
 
     steps:
@@ -40,13 +39,13 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ matrix.service }}-${{ hashFiles(format('{0}/go.sum', matrix.service)) }}
+          key: ${{ runner.os }}-go-${{ matrix.service }}-${{ hashFiles(format('services/{0}/go.sum', matrix.service)) }}
           restore-keys: |
             ${{ runner.os }}-go-${{ matrix.service }}-
 
       - name: Check code formatting (Go fmt)
         run: |
-          cd ${{ matrix.service }}
+          cd services/${{ matrix.service }}
           if ls *.go >/dev/null 2>&1 || [ -d internal ] || [ -d cmd ]; then
             if [ -n "$(gofmt -l .)" ]; then
               echo "Code is not formatted! Please run 'gofmt -w .'"
@@ -57,7 +56,7 @@ jobs:
 
       - name: Run Go Vet (Static Analysis)
         run: |
-          cd ${{ matrix.service }}
+          cd services/${{ matrix.service }}
           if [ -f go.mod ]; then
             go vet ./...
           else
