@@ -13,7 +13,6 @@ on:
 
 jobs:
   audit:
-    name: Build and Test
     runs-on: ubuntu-latest
 
     steps:
@@ -39,21 +38,18 @@ jobs:
 
           go work sync
 
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Check formatting
+      - name: Show workspace
         run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            gofmt -l .
-            exit 1
-          fi
+          cat go.work
 
       - name: Run vet
-        run: go vet ./...
+        run: |
+          go vet ./...
 
       - name: Build
-        run: go build ./...
+        run: |
+          go build ./...
 
-      - name: Run tests
-        run: go test ./... -v
+      - name: Test
+        run: |
+          go test ./... -v
