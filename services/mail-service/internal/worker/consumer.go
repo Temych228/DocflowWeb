@@ -50,7 +50,6 @@ func (c *Consumer) Run(ctx context.Context) error {
 			return
 		}
 
-		// map shared EmailJob -> internal domain.MailJob
 		var job domain.MailJob
 		job.JobID = incoming.JobID
 		job.NotificationID = incoming.NotificationID

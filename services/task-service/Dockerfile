@@ -9,7 +9,7 @@ RUN go mod download && go mod tidy
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags='all=-lang=go1.26' -o user-service ./cmd/app
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags='all=-lang=go1.26' -o task-service ./cmd/app
 
 FROM alpine:3.22
 
@@ -17,8 +17,8 @@ WORKDIR /app
 
 RUN apk add --no-cache ca-certificates tzdata
 
-COPY --from=builder /app/user-service .
+COPY --from=builder /app/task-service .
 
-EXPOSE 8081 9002 9201
+EXPOSE 8084 9004 9204
 
-CMD ["./user-service"]
+CMD ["./task-service"]

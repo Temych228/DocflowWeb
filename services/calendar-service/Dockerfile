@@ -5,7 +5,7 @@ WORKDIR /app
 RUN apk add --no-cache git ca-certificates
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN go mod download && go mod tidy
 
 COPY . .
 
@@ -19,6 +19,6 @@ RUN apk add --no-cache ca-certificates tzdata
 
 COPY --from=builder /app/calendar-service .
 
-EXPOSE 9005
+EXPOSE 8085 9005 9205
 
 CMD ["./calendar-service"]

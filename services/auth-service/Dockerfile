@@ -5,7 +5,7 @@ WORKDIR /app
 RUN apk add --no-cache git ca-certificates
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN go mod download && go mod tidy
 
 COPY . .
 
@@ -19,6 +19,6 @@ RUN apk add --no-cache ca-certificates tzdata
 
 COPY --from=builder /app/auth-service .
 
-EXPOSE 8082 9092
+EXPOSE 8082 9001 9202
 
 CMD ["./auth-service"]
