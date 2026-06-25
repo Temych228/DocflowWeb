@@ -1,3 +1,5 @@
+\connect notif_db;
+
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS notifications (

@@ -3,7 +3,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TYPE task_status AS ENUM (
-    'pending', 'in_progress', 'completed', 'overdue', 'cancelled'
+    'open', 'in_progress', 'done', 'overdue', 'cancelled'
 );
 
 CREATE TYPE task_priority AS ENUM (
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     document_id  UUID          NOT NULL,
     title        TEXT          NOT NULL,
     description  TEXT          NOT NULL DEFAULT '',
-    status       task_status   NOT NULL DEFAULT 'pending',
+    status       task_status   NOT NULL DEFAULT 'open',
     priority     task_priority NOT NULL DEFAULT 'medium',
     creator_id   UUID          NOT NULL,
     assignee_id  UUID          NULL,
@@ -30,11 +30,14 @@ CREATE TABLE IF NOT EXISTS task_history (
                                             id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     task_id     UUID        NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
     actor_id    UUID        NOT NULL,
-    action      TEXT        NOT NULL,
+    action      TEXT        NOT NULL DEFAULT '',
     old_status  task_status NULL,
     new_status  task_status NULL,
     comment     TEXT        NOT NULL DEFAULT '',
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    field       TEXT        NOT NULL DEFAULT '',
+    old_value   TEXT        NOT NULL DEFAULT '',
+    new_value   TEXT        NOT NULL DEFAULT '',
+    changed_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
 CREATE INDEX IF NOT EXISTS idx_tasks_document    ON tasks(document_id);

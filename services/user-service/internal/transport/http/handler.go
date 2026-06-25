@@ -19,24 +19,21 @@ func New(svc *service.UserService) *Handler {
 }
 
 func (h *Handler) Register(r *gin.Engine) {
-	api := r.Group("/api/v1")
-	{
-		api.GET("/health", h.health)
+	r.GET("/health", h.health)
 
-		users := api.Group("/users")
-		{
-			users.POST("", h.createUser)
-			users.GET("", h.listUsers)
-			users.GET("/stats", h.userStats)
-			users.GET("/batch", h.getUsersBatch)
-			users.GET("/by-email", h.getUserByEmail)
-			users.GET("/exists", h.checkUserExists)
-			users.GET("/:id", h.getUser)
-			users.PUT("/:id", h.updateUser)
-			users.DELETE("/:id", h.deleteUser)
-			users.PATCH("/:id/verify", h.verifyUser)
-			users.PATCH("/:id/ban", h.banUser)
-		}
+	users := r.Group("/users")
+	{
+		users.POST("", h.createUser)
+		users.GET("", h.listUsers)
+		users.GET("/stats", h.userStats)
+		users.GET("/batch", h.getUsersBatch)
+		users.GET("/by-email", h.getUserByEmail)
+		users.GET("/exists", h.checkUserExists)
+		users.GET("/:id", h.getUser)
+		users.PUT("/:id", h.updateUser)
+		users.DELETE("/:id", h.deleteUser)
+		users.PATCH("/:id/verify", h.verifyUser)
+		users.PATCH("/:id/ban", h.banUser)
 	}
 }
 

@@ -22,11 +22,11 @@ func (h *Handler) Register(r *gin.Engine) {
 	tasks := r.Group("/tasks")
 	{
 		tasks.POST("", h.createTask)
+		tasks.GET("/document/:documentID", h.listByDocument)
+		tasks.GET("/assignee/:assigneeID", h.listByAssignee)
 		tasks.GET("/:id", h.getTask)
 		tasks.PUT("/:id", h.updateTask)
 		tasks.DELETE("/:id", h.deleteTask)
-		tasks.GET("/document/:documentID", h.listByDocument)
-		tasks.GET("/assignee/:assigneeID", h.listByAssignee)
 		tasks.POST("/:id/assign", h.assignTask)
 		tasks.PATCH("/:id/status", h.changeStatus)
 		tasks.GET("/:id/history", h.getHistory)

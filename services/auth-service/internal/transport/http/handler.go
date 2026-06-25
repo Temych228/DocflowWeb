@@ -1,220 +1,254 @@
-package grpc
+package http
 
 import (
-	"context"
-	"errors"
+	"net/http"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
-
-	"github.com/Temych228/DocflowWeb/services/auth-service/internal/domain"
 	"github.com/Temych228/DocflowWeb/services/auth-service/internal/service"
-	authpb "github.com/Temych228/docflow-protos-final/auth/v1"
+	"github.com/gin-gonic/gin"
 )
 
-type AuthHandler struct {
-	authpb.UnimplementedAuthServiceServer
-	svc service.AuthService
+type Handler struct {
+	authService service.AuthService
 }
 
-func New(svc service.AuthService) *AuthHandler {
-	return &AuthHandler{svc: svc}
+func New(authService service.AuthService) *Handler {
+	return &Handler{authService: authService}
 }
 
-func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest) (*authpb.RegisterResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is nil")
+func (h *Handler) Register(r *gin.Engine) {
+
+	auth := r.Group("/auth")
+	{
+		auth.POST("/register", h.register)
+		auth.POST("/login", h.login)
+		auth.POST("/refresh", h.refreshToken)
+		auth.POST("/logout", h.logout)
+		auth.POST("/verify-email", h.verifyEmail)
+		auth.POST("/forgot-password", h.forgotPassword)
+		auth.POST("/reset-password", h.resetPassword)
+		auth.POST("/change-password", h.changePassword)
+		auth.POST("/validate-token", h.validateToken)
+		auth.POST("/session", h.getSession)
+		auth.POST("/revoke-all-sessions", h.revokeAllSessions)
+	}
+}
+
+func (h *Handler) register(c *gin.Context) {
+	var req struct {
+		Email    string `json:"email" binding:"required,email"`
+		Password string `json:"password" binding:"required,min=6"`
+		Name     string `json:"name" binding:"required"`
+		Role     string `json:"role"`
 	}
 
-	userID, err := h.svc.Register(ctx, service.RegisterInput{
-		Email:     req.Email,
-		Password:  req.Password,
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
-		Phone:     req.Phone,
-		Role:      req.Role,
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID, err := h.authService.Register(c.Request.Context(), service.RegisterInput{
+		Email:    req.Email,
+		Password: req.Password,
+		Name:     req.Name,
+		Role:     req.Role,
 	})
 	if err != nil {
-		return nil, toGRPCError(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
-	return &authpb.RegisterResponse{UserId: userID}, nil
+	c.JSON(http.StatusCreated, gin.H{"user_id": userID, "message": "User registered successfully"})
 }
 
-func (h *AuthHandler) Login(ctx context.Context, req *authpb.LoginRequest) (*authpb.LoginResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is nil")
+func (h *Handler) login(c *gin.Context) {
+	var req struct {
+		Email    string `json:"email" binding:"required,email"`
+		Password string `json:"password" binding:"required"`
 	}
 
-	pair, err := h.svc.Login(ctx, service.LoginInput{
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	tokens, err := h.authService.Login(c.Request.Context(), service.LoginInput{
 		Email:    req.Email,
 		Password: req.Password,
 	})
 	if err != nil {
-		return nil, toGRPCError(err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
 	}
 
-	return &authpb.LoginResponse{
-		AccessToken:  pair.AccessToken,
-		RefreshToken: pair.RefreshToken,
-		ExpiresAt:    timestamppb.New(pair.ExpiresAt),
-		UserId:       pair.UserID,
-		Email:        pair.Email,
-		Role:         pair.Role,
-	}, nil
+	c.JSON(http.StatusOK, tokens)
 }
 
-func (h *AuthHandler) RefreshToken(ctx context.Context, req *authpb.RefreshTokenRequest) (*authpb.RefreshTokenResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is nil")
+func (h *Handler) refreshToken(c *gin.Context) {
+	var req struct {
+		RefreshToken string `json:"refresh_token" binding:"required"`
 	}
 
-	pair, err := h.svc.RefreshToken(ctx, req.RefreshToken)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	tokens, err := h.authService.RefreshToken(c.Request.Context(), req.RefreshToken)
 	if err != nil {
-		return nil, toGRPCError(err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
+		return
 	}
 
-	return &authpb.RefreshTokenResponse{
-		AccessToken:  pair.AccessToken,
-		RefreshToken: pair.RefreshToken,
-		ExpiresAt:    timestamppb.New(pair.ExpiresAt),
-	}, nil
+	c.JSON(http.StatusOK, tokens)
 }
 
-func (h *AuthHandler) Logout(ctx context.Context, req *authpb.LogoutRequest) (*authpb.LogoutResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is nil")
+func (h *Handler) validateToken(c *gin.Context) {
+	var req struct {
+		AccessToken string `json:"access_token" binding:"required"`
 	}
 
-	if err := h.svc.Logout(ctx, req.RefreshToken); err != nil {
-		return nil, toGRPCError(err)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	return &authpb.LogoutResponse{Success: true}, nil
-}
-
-func (h *AuthHandler) ValidateToken(ctx context.Context, req *authpb.ValidateTokenRequest) (*authpb.ValidateTokenResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is nil")
-	}
-
-	claims, err := h.svc.ValidateToken(req.AccessToken)
+	claims, err := h.authService.ValidateToken(req.AccessToken)
 	if err != nil {
-		return nil, toGRPCError(err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		return
 	}
 
-	return &authpb.ValidateTokenResponse{
-		Valid:  true,
-		UserId: claims.UserID,
-		Email:  claims.Email,
-		Role:   claims.Role,
-	}, nil
+	c.JSON(http.StatusOK, claims)
 }
 
-func (h *AuthHandler) VerifyEmail(ctx context.Context, req *authpb.VerifyEmailRequest) (*authpb.VerifyEmailResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is nil")
+func (h *Handler) logout(c *gin.Context) {
+	var req struct {
+		UserID       string `json:"user_id" binding:"required"`
+		RefreshToken string `json:"refresh_token" binding:"required"`
 	}
 
-	if err := h.svc.VerifyEmail(ctx, req.Token); err != nil {
-		return nil, toGRPCError(err)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	return &authpb.VerifyEmailResponse{Success: true}, nil
+	if err := h.authService.Logout(c.Request.Context(), req.UserID, req.RefreshToken); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }
 
-func (h *AuthHandler) ForgotPassword(ctx context.Context, req *authpb.ForgotPasswordRequest) (*authpb.ForgotPasswordResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is nil")
+func (h *Handler) verifyEmail(c *gin.Context) {
+	var req struct {
+		Token string `json:"token" binding:"required"`
 	}
 
-	resetToken, err := h.svc.ForgotPassword(ctx, req.Email)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.authService.VerifyEmail(c.Request.Context(), req.Token); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Email verified successfully"})
+}
+
+func (h *Handler) forgotPassword(c *gin.Context) {
+	var req struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.authService.ForgotPassword(c.Request.Context(), req.Email); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset email sent"})
+}
+
+func (h *Handler) resetPassword(c *gin.Context) {
+	var req struct {
+		Token       string `json:"token" binding:"required"`
+		NewPassword string `json:"new_password" binding:"required,min=6"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.authService.ResetPassword(c.Request.Context(), req.Token, req.NewPassword); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
+}
+
+func (h *Handler) changePassword(c *gin.Context) {
+	var req struct {
+		UserID      string `json:"user_id" binding:"required"`
+		OldPassword string `json:"old_password" binding:"required"`
+		NewPassword string `json:"new_password" binding:"required,min=6"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.authService.ChangePassword(c.Request.Context(), req.UserID, req.OldPassword, req.NewPassword); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid old password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
+}
+
+func (h *Handler) getSession(c *gin.Context) {
+	var req struct {
+		UserID string `json:"user_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	session, err := h.authService.GetSession(c.Request.Context(), req.UserID)
 	if err != nil {
-		return nil, toGRPCError(err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Session not found"})
+		return
 	}
 
-	return &authpb.ForgotPasswordResponse{
-		ResetToken: resetToken,
-	}, nil
+	c.JSON(http.StatusOK, session)
 }
 
-func (h *AuthHandler) ResetPassword(ctx context.Context, req *authpb.ResetPasswordRequest) (*authpb.ResetPasswordResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is nil")
+func (h *Handler) revokeAllSessions(c *gin.Context) {
+	var req struct {
+		UserID string `json:"user_id" binding:"required"`
 	}
 
-	if err := h.svc.ResetPassword(ctx, req.Token, req.NewPassword); err != nil {
-		return nil, toGRPCError(err)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	return &authpb.ResetPasswordResponse{Success: true}, nil
-}
-
-func (h *AuthHandler) ChangePassword(ctx context.Context, req *authpb.ChangePasswordRequest) (*authpb.ChangePasswordResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is nil")
-	}
-
-	if err := h.svc.ChangePassword(ctx, req.UserId, req.OldPassword, req.NewPassword); err != nil {
-		return nil, toGRPCError(err)
-	}
-
-	return &authpb.ChangePasswordResponse{Success: true}, nil
-}
-
-func (h *AuthHandler) GetSession(ctx context.Context, req *authpb.GetSessionRequest) (*authpb.GetSessionResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is nil")
-	}
-
-	session, err := h.svc.GetSession(ctx, req.AccessToken)
+	count, err := h.authService.RevokeAllSessions(c.Request.Context(), req.UserID)
 	if err != nil {
-		return nil, toGRPCError(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
-	return &authpb.GetSessionResponse{
-		UserId:    session.UserID,
-		Email:     session.Email,
-		Role:      session.Role,
-		ExpiresAt: timestamppb.New(session.ExpiresAt),
-	}, nil
-}
-
-func (h *AuthHandler) RevokeAllSessions(ctx context.Context, req *authpb.RevokeAllSessionsRequest) (*authpb.RevokeAllSessionsResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request is nil")
-	}
-
-	count, err := h.svc.RevokeAllSessions(ctx, req.UserId)
-	if err != nil {
-		return nil, toGRPCError(err)
-	}
-
-	return &authpb.RevokeAllSessionsResponse{RevokedCount: count}, nil
-}
-
-func toGRPCError(err error) error {
-	switch {
-	case errors.Is(err, models.ErrInvalidInput):
-		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, models.ErrEmailTaken):
-		return status.Error(codes.AlreadyExists, err.Error())
-	case errors.Is(err, models.ErrUserNotFound):
-		return status.Error(codes.NotFound, err.Error())
-	case errors.Is(err, models.ErrUnauthorized):
-		return status.Error(codes.Unauthenticated, err.Error())
-	case errors.Is(err, models.ErrTokenExpired):
-		return status.Error(codes.Unauthenticated, err.Error())
-	case errors.Is(err, models.ErrTokenInvalid):
-		return status.Error(codes.Unauthenticated, err.Error())
-	case errors.Is(err, models.ErrTokenNotFound):
-		return status.Error(codes.Unauthenticated, err.Error())
-	case errors.Is(err, models.ErrUserBanned):
-		return status.Error(codes.PermissionDenied, err.Error())
-	case errors.Is(err, models.ErrUserInactive):
-		return status.Error(codes.PermissionDenied, err.Error())
-	default:
-		return status.Error(codes.Internal, "internal error")
-	}
+	c.JSON(http.StatusOK, gin.H{"message": "All sessions revoked", "revoked_count": count})
 }
