@@ -1,13 +1,13 @@
-go 1.26
+go 1.26.2
 
 use (
-    .
-    ./services/api-gateway
-    ./services/auth-service
-    ./services/calendar-service
-    ./services/document-service
-    ./services/mail-service
-    ./services/notification-service
-    ./services/task-service
-    ./services/user-service
+	.
+	./services/api-gateway
+	./services/auth-service
+	./services/calendar-service
+	./services/document-service
+	./services/mail-service
+	./services/notification-service
+	./services/task-service
+	./services/user-service
 )
