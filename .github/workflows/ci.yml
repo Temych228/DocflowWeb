@@ -12,9 +12,26 @@ on:
       - master
 
 jobs:
-  audit:
-    name: Build and Test
+  services:
+    name: ${{ matrix.service }}
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api-gateway
+          - auth-service
+          - calendar-service
+          - document-service
+          - mail-service
+          - notification-service
+          - task-service
+          - user-service
+
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
 
     steps:
       - name: Checkout repository
@@ -23,32 +40,42 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26.2'
+          go-version: "1.26.2"
           cache: true
+          cache-dependency-path: |
+            go.sum
+            services/**/go.sum
 
-      - name: Verify workspace
+      - name: Show Go version
         run: |
           go version
-          go work edit -json
-
-      - name: Sync workspace
-        run: go work sync
+          go env
 
       - name: Download dependencies
-        run: go mod download
+        run: |
+          go mod download
+
+      - name: Verify modules
+        run: |
+          go mod verify
 
       - name: Check formatting
+        shell: bash
         run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            gofmt -l .
+          files=$(gofmt -l .)
+          if [ -n "$files" ]; then
+            echo "$files"
             exit 1
           fi
 
       - name: Run go vet
-        run: go vet ./...
+        run: |
+          go vet ./...
 
       - name: Build
-        run: go build ./...
+        run: |
+          go build ./...
 
-      - name: Test
-        run: go test ./... -v
+      - name: Run tests
+        run: |
+          go test ./... -v
