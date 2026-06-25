@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -19,6 +22,7 @@ import (
 	postgres "github.com/Temych228/DocflowWeb/services/document-service/internal/repository"
 	"github.com/Temych228/DocflowWeb/services/document-service/internal/service"
 	grpcserver "github.com/Temych228/DocflowWeb/services/document-service/internal/transport/grpc"
+	httptransport "github.com/Temych228/DocflowWeb/services/document-service/internal/transport/http"
 )
 
 type App struct {
@@ -26,8 +30,10 @@ type App struct {
 
 	db *pgxpool.Pool
 
-	grpcServer   *grpc.Server
-	grpcListener net.Listener
+	grpcServer    *grpc.Server
+	grpcListener  net.Listener
+	httpServer    *http.Server
+	metricsServer *http.Server
 
 	logger *slog.Logger
 }
@@ -63,11 +69,34 @@ func New(cfg *config.Config, logger *slog.Logger) (*App, error) {
 
 	reflection.Register(grpcServer)
 
+	router := gin.New()
+	router.Use(gin.Recovery())
+
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+	httpHandler := httptransport.New(svc)
+	httpHandler.Register(router)
+
+	httpServer := &http.Server{
+		Addr:    cfg.Address(),
+		Handler: router,
+	}
+
+	metricsServer := &http.Server{
+		Addr:    cfg.MetricsAddress(),
+		Handler: promhttp.Handler(),
+	}
+
 	return &App{
-		cfg:        cfg,
-		db:         db,
-		grpcServer: grpcServer,
-		logger:     logger,
+		cfg:           cfg,
+		db:            db,
+		grpcServer:    grpcServer,
+		httpServer:    httpServer,
+		metricsServer: metricsServer,
+		logger:        logger,
 	}, nil
 }
 
@@ -83,6 +112,31 @@ func (a *App) Run(ctx context.Context) error {
 	errCh := make(chan error, 1)
 	go func() {
 		if err := a.grpcServer.Serve(lis); err != nil {
+			errCh <- err
+		}
+	}()
+
+	httpLis, err := net.Listen("tcp", a.cfg.Address())
+	if err != nil {
+		_ = lis.Close()
+		return fmt.Errorf("listen on app port %s: %w", a.cfg.AppPort, err)
+	}
+
+	metricsLis, err := net.Listen("tcp", a.cfg.MetricsAddress())
+	if err != nil {
+		_ = lis.Close()
+		_ = httpLis.Close()
+		return fmt.Errorf("listen on metrics port %s: %w", a.cfg.MetricsPort, err)
+	}
+
+	go func() {
+		if err := a.httpServer.Serve(httpLis); err != nil && err != http.ErrServerClosed {
+			errCh <- err
+		}
+	}()
+
+	go func() {
+		if err := a.metricsServer.Serve(metricsLis); err != nil && err != http.ErrServerClosed {
 			errCh <- err
 		}
 	}()

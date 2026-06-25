@@ -25,10 +25,10 @@ func (c *notificationClient) SendVerificationEmail(ctx context.Context, userID, 
 	_, err := c.client.SendEmail(ctx, &notifpb.SendEmailRequest{
 		To:         email,
 		Subject:    "Email verification",
-		TemplateId: "email_verification",
+		TemplateId: "verification",
 		TemplateVars: map[string]string{
-			"FirstName": name,
-			"Link":      fmt.Sprintf("https://dms.local/verify?token=%s", token),
+			"FirstName":        name,
+			"VerificationLink": fmt.Sprintf("https://dms.local/verify?token=%s", token),
 		},
 	})
 	return err
@@ -40,7 +40,7 @@ func (c *notificationClient) SendPasswordResetEmail(ctx context.Context, userID,
 		Subject:    "Reset Password",
 		TemplateId: "password_reset",
 		TemplateVars: map[string]string{
-			"Link": fmt.Sprintf("https://dms.local/reset-password?token=%s", token),
+			"ResetLink": fmt.Sprintf("https://dms.local/reset-password?token=%s", token),
 		},
 	})
 	return err

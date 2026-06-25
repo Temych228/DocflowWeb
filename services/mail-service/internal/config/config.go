@@ -65,6 +65,12 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	smtpFrom := getEnv("SMTP_FROM", "")
+	smtpUsername := getEnv("SMTP_USERNAME", "")
+	if smtpUsername == "" {
+		smtpUsername = smtpFrom
+	}
+
 	return &Config{
 		ServiceName:     "mail-service",
 		AppPort:         getEnv("APP_PORT", "8087"),
@@ -88,9 +94,9 @@ func Load() (*Config, error) {
 		MailJobsSubject: getEnv("MAIL_JOB_SUBJECT", "queue.mail.jobs"),
 		SMTPHost:        getEnv("SMTP_HOST", ""),
 		SMTPPort:        smtpPort,
-		SMTPUsername:    getEnv("SMTP_USERNAME", ""),
+		SMTPUsername:    smtpUsername,
 		SMTPPassword:    getEnv("SMTP_PASSWORD", ""),
-		SMTPFrom:        getEnv("SMTP_FROM", ""),
+		SMTPFrom:        smtpFrom,
 		SMTPUseTLS:      smtpTLS,
 		SMTPUseStartTLS: smtpStartTLS,
 		SMTPSkipVerify:  smtpSkipVerify,

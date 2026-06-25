@@ -8,6 +8,7 @@ import (
 )
 
 type Config struct {
+	ServiceName string
 	AppPort     string
 	GRPCPort    string
 	MetricsPort string
@@ -28,6 +29,10 @@ type Config struct {
 
 	NotificationServiceAddr string
 	CalendarServiceAddr     string
+	NATSURL                 string
+	LogSubject              string
+	MailJobSubject          string
+	NotificationSubject     string
 }
 
 func Load() (*Config, error) {
@@ -42,6 +47,7 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
+		ServiceName:             "document-service",
 		AppPort:                 getEnv("APP_PORT", "8083"),
 		GRPCPort:                getEnv("GRPC_PORT", "9003"),
 		MetricsPort:             getEnv("METRICS_PORT", "9203"),
@@ -59,6 +65,10 @@ func Load() (*Config, error) {
 		CacheTTL:                cacheTTL,
 		NotificationServiceAddr: getEnv("NOTIFICATION_SERVICE_ADDR", ""),
 		CalendarServiceAddr:     getEnv("CALENDAR_SERVICE_ADDR", ""),
+		NATSURL:                 getEnv("NATS_URL", ""),
+		LogSubject:              getEnv("LOG_SUBJECT", "queue.logs"),
+		MailJobSubject:          getEnv("MAIL_JOB_SUBJECT", "queue.mail.jobs"),
+		NotificationSubject:     getEnv("NOTIFICATION_SUBJECT", "queue.notification.events"),
 	}
 
 	return cfg, nil

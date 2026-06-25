@@ -13,7 +13,8 @@ type UserClient interface {
 }
 
 type CreateUserRequest struct {
-	Email string
-	Name  string
-	Role  string
+	Email    string
+	Name     string
+	Password string
+	Role     string
 }

@@ -44,7 +44,7 @@ func Load() (*Config, error) {
 	return &Config{
 		ServiceName:         "user-service",
 		AppPort:             getEnv("APP_PORT", "8081"),
-		GRPCPort:            getEnv("GRPC_PORT", "9091"),
+		GRPCPort:            getEnv("GRPC_PORT", "9002"),
 		MetricsPort:         getEnv("METRICS_PORT", "9201"),
 		DatabaseURL:         getEnv("DATABASE_URL", ""),
 		DBHost:              getEnv("DB_HOST", "localhost"),

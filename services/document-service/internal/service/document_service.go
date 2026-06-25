@@ -39,6 +39,11 @@ func (s *documentService) CreateDocument(ctx context.Context, input domain.Creat
 		return nil, err
 	}
 
+	tags := input.Tags
+	if tags == nil {
+		tags = []string{}
+	}
+
 	doc := &domain.Document{
 		Title:         input.Title,
 		Description:   input.Description,
@@ -48,7 +53,7 @@ func (s *documentService) CreateDocument(ctx context.Context, input domain.Creat
 		ResponsibleID: input.ResponsibleID,
 		Deadline:      input.Deadline,
 		FileURL:       input.FileURL,
-		Tags:          input.Tags,
+		Tags:          tags,
 	}
 
 	if err := s.documents.Create(ctx, doc); err != nil {

@@ -20,6 +20,8 @@ import (
 	"github.com/Temych228/DocflowWeb/services/auth-service/internal/repository"
 	"github.com/Temych228/DocflowWeb/services/auth-service/internal/service"
 	grpcserver "github.com/Temych228/DocflowWeb/services/auth-service/internal/transport/grpc"
+	httptransport "github.com/Temych228/DocflowWeb/services/auth-service/internal/transport/http"
+	"github.com/gin-gonic/gin"
 )
 
 type App struct {
@@ -75,15 +77,20 @@ func New(cfg *config.Config) (*App, error) {
 	authv1.RegisterAuthServiceServer(grpcSrv, grpcserver.New(svc))
 	reflection.Register(grpcSrv)
 
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	router := gin.New()
+	router.Use(gin.Recovery())
+
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+
+	httpHandler := httptransport.New(svc)
+	httpHandler.Register(router)
 
 	httpServer := &http.Server{
 		Addr:         cfg.Address(),
+		Handler:      router,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
@@ -112,7 +119,7 @@ func (a *App) Run(ctx context.Context) error {
 	}()
 
 	go func() {
-		log.Printf("[INFO] auth-service HTTP (metrics) listening on %s", a.cfg.Address())
+		log.Printf("[INFO] auth-service HTTP listening on %s", a.cfg.Address())
 		if err := a.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("[ERROR] http server stopped: %v", err)
 		}

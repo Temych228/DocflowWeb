@@ -8,6 +8,7 @@ import (
 )
 
 type Config struct {
+	ServiceName string
 	AppPort     string
 	GRPCPort    string
 	MetricsPort string
@@ -34,6 +35,10 @@ type Config struct {
 
 	NotificationServiceAddr string
 	UserServiceAddr         string
+	NATSURL                 string
+	LogSubject              string
+	MailJobSubject          string
+	NotificationSubject     string
 }
 
 func Load() (*Config, error) {
@@ -63,6 +68,7 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
+		ServiceName:             "auth-service",
 		AppPort:                 getEnv("APP_PORT", "8082"),
 		GRPCPort:                getEnv("GRPC_PORT", "9001"),
 		MetricsPort:             getEnv("METRICS_PORT", "9202"),
@@ -85,6 +91,10 @@ func Load() (*Config, error) {
 		PasswordResetTTL:        resetTTL,
 		NotificationServiceAddr: getEnv("NOTIFICATION_SERVICE_ADDR", "localhost:9006"),
 		UserServiceAddr:         getEnv("USER_SERVICE_ADDR", "localhost:9002"),
+		NATSURL:                 getEnv("NATS_URL", ""),
+		LogSubject:              getEnv("LOG_SUBJECT", "queue.logs"),
+		MailJobSubject:          getEnv("MAIL_JOB_SUBJECT", "queue.mail.jobs"),
+		NotificationSubject:     getEnv("NOTIFICATION_SUBJECT", "queue.notification.events"),
 	}, nil
 }
 

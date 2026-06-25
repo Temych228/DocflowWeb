@@ -368,7 +368,7 @@ func (s *authService) issueTokenPair(ctx context.Context, user *domain.AuthUser)
 	return &TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		ExpiresIn:    int64(s.cfg.AccessTokenTTL.Seconds()), // proto: expires_in (секунды)
+		ExpiresIn:    int64(s.cfg.AccessTokenTTL.Seconds()),
 		UserID:       user.ID,
 		Email:        user.Email,
 		Role:         string(user.Role),
