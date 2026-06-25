@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DocflowWeb</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">D</div>
+        <div>
+          <h1>DocflowWeb</h1>
+          <p id="sessionLabel">not signed in</p>
+        </div>
+      </div>
+      <nav class="nav" id="nav">
+        <button class="active" data-view="dashboard">Dashboard</button>
+        <button data-view="auth">Auth</button>
+        <button data-view="users">Users</button>
+        <button data-view="documents">Documents</button>
+        <button data-view="tasks">Tasks</button>
+        <button data-view="calendar">Calendar</button>
+        <button data-view="notifications">Notifications</button>
+        <button data-view="mail">Mail</button>
+        <button data-view="tools">Tools</button>
+      </nav>
+      <div class="session">
+        <label>Access token</label>
+        <textarea id="tokenInput" rows="5" spellcheck="false"></textarea>
+        <div class="button-row">
+          <button id="saveTokenBtn">Save</button>
+          <button id="clearTokenBtn" class="quiet">Clear</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2 id="viewTitle">Dashboard</h2>
+          <p id="viewSubtitle">Operational workspace for documents, tasks, calendar and notifications.</p>
+        </div>
+        <div class="top-actions">
+          <button id="healthBtn" class="quiet">Health</button>
+          <button id="refreshBtn">Refresh view</button>
+        </div>
+      </header>
+
+      <section class="view active" id="dashboard">
+        <div class="metrics-grid">
+          <article class="metric">
+            <span>Documents</span>
+            <strong id="metricDocuments">-</strong>
+          </article>
+          <article class="metric">
+            <span>Tasks</span>
+            <strong id="metricTasks">-</strong>
+          </article>
+          <article class="metric">
+            <span>Unread</span>
+            <strong id="metricUnread">-</strong>
+          </article>
+          <article class="metric">
+            <span>Events</span>
+            <strong id="metricEvents">-</strong>
+          </article>
+        </div>
+        <div class="panel-grid two">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Recent documents</h3>
+              <button data-view-jump="documents" class="quiet">Open</button>
+            </div>
+            <div id="dashboardDocuments" class="list"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <h3>My task queue</h3>
+              <button data-view-jump="tasks" class="quiet">Open</button>
+            </div>
+            <div id="dashboardTasks" class="list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="auth">
+        <div class="panel-grid two">
+          <section class="panel">
+            <h3>Register</h3>
+            <form data-action="auth.register" class="form">
+              <input name="email" type="email" placeholder="email" required>
+              <input name="password" type="password" placeholder="password" required>
+              <input name="name" placeholder="name" required>
+              <select name="role">
+                <option value="employee">employee</option>
+                <option value="manager">manager</option>
+                <option value="admin">admin</option>
+              </select>
+              <button>Register</button>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Login</h3>
+            <form data-action="auth.login" class="form">
+              <input name="email" type="email" placeholder="email" required>
+              <input name="password" type="password" placeholder="password" required>
+              <button>Login</button>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Session</h3>
+            <form data-action="auth.refresh" class="form">
+              <input name="refresh_token" placeholder="refresh token" required>
+              <button>Refresh token</button>
+            </form>
+            <form data-action="auth.logout" class="form inline-form">
+              <input name="user_id" placeholder="user id" required>
+              <input name="refresh_token" placeholder="refresh token" required>
+              <button class="quiet">Logout</button>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Password and email</h3>
+            <form data-action="auth.verifyEmail" class="form inline-form">
+              <input name="token" placeholder="verification token" required>
+              <button>Verify email</button>
+            </form>
+            <form data-action="auth.forgotPassword" class="form inline-form">
+              <input name="email" type="email" placeholder="email" required>
+              <button class="quiet">Forgot password</button>
+            </form>
+            <form data-action="auth.resetPassword" class="form">
+              <input name="token" placeholder="reset token" required>
+              <input name="new_password" type="password" placeholder="new password" required>
+              <button class="quiet">Reset password</button>
+            </form>
+            <form data-action="auth.changePassword" class="form">
+              <input name="user_id" placeholder="user id" required>
+              <input name="old_password" type="password" placeholder="old password" required>
+              <input name="new_password" type="password" placeholder="new password" required>
+              <button class="quiet">Change password</button>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="users">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>User directory</h3>
+            <button data-action-click="users.list">Reload</button>
+          </div>
+          <div class="filters">
+            <input id="userRoleFilter" placeholder="role">
+            <input id="userEmailSearch" placeholder="email">
+            <button data-action-click="users.byEmail" class="quiet">Find by email</button>
+            <button data-action-click="users.exists" class="quiet">Check exists</button>
+          </div>
+          <div id="usersTable" class="table"></div>
+        </div>
+        <div class="panel-grid two">
+          <section class="panel">
+            <h3>Create user</h3>
+            <form data-action="users.create" class="form">
+              <input name="email" type="email" placeholder="email" required>
+              <input name="name" placeholder="name" required>
+              <select name="role">
+                <option value="employee">employee</option>
+                <option value="manager">manager</option>
+                <option value="admin">admin</option>
+              </select>
+              <button>Create</button>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>User actions</h3>
+            <form data-action="users.update" class="form">
+              <input name="id" placeholder="user id" required>
+              <input name="name" placeholder="name">
+              <select name="role">
+                <option value="">keep role</option>
+                <option value="employee">employee</option>
+                <option value="manager">manager</option>
+                <option value="admin">admin</option>
+              </select>
+              <button>Update</button>
+            </form>
+            <form data-action="users.ban" class="form inline-form">
+              <input name="id" placeholder="user id" required>
+              <input name="admin_id" placeholder="admin id" required>
+              <input name="reason" placeholder="reason">
+              <button class="danger">Ban</button>
+            </form>
+            <form data-action="users.delete" class="form inline-form">
+              <input name="id" placeholder="user id" required>
+              <button class="danger">Delete</button>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="documents">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Documents</h3>
+            <div class="button-row">
+              <button data-action-click="documents.list">Reload</button>
+              <button data-action-click="documents.exportCsv" class="quiet">Export CSV</button>
+              <button data-action-click="documents.stats" class="quiet">Stats</button>
+            </div>
+          </div>
+          <div class="filters">
+            <input id="docCreatorFilter" placeholder="creator id">
+            <input id="docResponsibleFilter" placeholder="responsible id">
+            <select id="docStatusFilter">
+              <option value="">status</option>
+              <option value="draft">draft</option>
+              <option value="assigned">assigned</option>
+              <option value="in_progress">in_progress</option>
+              <option value="completed">completed</option>
+              <option value="overdue">overdue</option>
+              <option value="archived">archived</option>
+            </select>
+            <select id="docTypeFilter">
+              <option value="">type</option>
+              <option value="contract">contract</option>
+              <option value="invoice">invoice</option>
+              <option value="report">report</option>
+              <option value="memo">memo</option>
+              <option value="order">order</option>
+              <option value="other">other</option>
+            </select>
+            <button data-action-click="documents.filter" class="quiet">Filter</button>
+            <button data-action-click="documents.markOverdue" class="quiet">Mark overdue</button>
+          </div>
+          <div id="documentsTable" class="table"></div>
+        </div>
+        <div class="panel-grid two">
+          <section class="panel">
+            <h3>Create document</h3>
+            <form data-action="documents.create" class="form">
+              <input name="title" placeholder="title" required>
+              <textarea name="description" rows="3" placeholder="description"></textarea>
+              <select name="type">
+                <option value="contract">contract</option>
+                <option value="invoice">invoice</option>
+                <option value="report">report</option>
+                <option value="memo">memo</option>
+                <option value="order">order</option>
+                <option value="other">other</option>
+              </select>
+              <input name="creator_id" placeholder="creator id" required>
+              <input name="responsible_id" placeholder="responsible id">
+              <input name="deadline" type="datetime-local">
+              <input name="file_url" placeholder="file url" required>
+              <input name="tags" placeholder="tags comma separated">
+              <button>Create</button>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Document actions</h3>
+            <form data-action="documents.update" class="form">
+              <input name="id" placeholder="document id" required>
+              <input name="title" placeholder="title">
+              <textarea name="description" rows="2" placeholder="description"></textarea>
+              <select name="type">
+                <option value="">keep type</option>
+                <option value="contract">contract</option>
+                <option value="invoice">invoice</option>
+                <option value="report">report</option>
+                <option value="memo">memo</option>
+                <option value="order">order</option>
+                <option value="other">other</option>
+              </select>
+              <input name="actor_id" placeholder="actor id" required>
+              <button>Update</button>
+            </form>
+            <form data-action="documents.assign" class="form inline-form">
+              <input name="id" placeholder="document id" required>
+              <input name="responsible_id" placeholder="responsible id" required>
+              <input name="actor_id" placeholder="actor id" required>
+              <button class="quiet">Assign</button>
+            </form>
+            <form data-action="documents.status" class="form inline-form">
+              <input name="id" placeholder="document id" required>
+              <select name="new_status">
+                <option value="assigned">assigned</option>
+                <option value="in_progress">in_progress</option>
+                <option value="completed">completed</option>
+                <option value="overdue">overdue</option>
+                <option value="archived">archived</option>
+              </select>
+              <input name="actor_id" placeholder="actor id" required>
+              <input name="comment" placeholder="comment">
+              <button class="quiet">Change status</button>
+            </form>
+            <form data-action="documents.archive" class="form inline-form">
+              <input name="id" placeholder="document id" required>
+              <input name="actor_id" placeholder="actor id" required>
+              <button class="quiet">Archive</button>
+            </form>
+            <form data-action="documents.history" class="form inline-form">
+              <input name="id" placeholder="document id" required>
+              <button class="quiet">History</button>
+            </form>
+            <form data-action="documents.delete" class="form inline-form">
+              <input name="id" placeholder="document id" required>
+              <input name="actor_id" placeholder="actor id" required>
+              <button class="danger">Delete</button>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="tasks">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Tasks</h3>
+            <div class="button-row">
+              <button data-action-click="tasks.stats" class="quiet">Stats</button>
+              <button data-action-click="tasks.markOverdue" class="quiet">Mark overdue</button>
+            </div>
+          </div>
+          <div class="filters">
+            <input id="taskDocumentFilter" placeholder="document id">
+            <input id="taskAssigneeFilter" placeholder="assignee id">
+            <select id="taskStatusFilter">
+              <option value="">status</option>
+              <option value="open">open</option>
+              <option value="in_progress">in_progress</option>
+              <option value="done">done</option>
+              <option value="overdue">overdue</option>
+            </select>
+            <select id="taskPriorityFilter">
+              <option value="">priority</option>
+              <option value="low">low</option>
+              <option value="medium">medium</option>
+              <option value="high">high</option>
+              <option value="critical">critical</option>
+            </select>
+            <button data-action-click="tasks.byDocument" class="quiet">By document</button>
+            <button data-action-click="tasks.byAssignee" class="quiet">By assignee</button>
+            <button data-action-click="tasks.filter" class="quiet">Filter</button>
+          </div>
+          <div id="tasksTable" class="table"></div>
+        </div>
+        <div class="panel-grid two">
+          <section class="panel">
+            <h3>Create task</h3>
+            <form data-action="tasks.create" class="form">
+              <input name="title" placeholder="title" required>
+              <textarea name="description" rows="3" placeholder="description"></textarea>
+              <input name="document_id" placeholder="document id" required>
+              <input name="creator_id" placeholder="creator id" required>
+              <select name="priority">
+                <option value="medium">medium</option>
+                <option value="low">low</option>
+                <option value="high">high</option>
+                <option value="critical">critical</option>
+              </select>
+              <input name="deadline" type="datetime-local">
+              <button>Create</button>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Task actions</h3>
+            <form data-action="tasks.update" class="form">
+              <input name="id" placeholder="task id" required>
+              <input name="title" placeholder="title">
+              <textarea name="description" rows="2" placeholder="description"></textarea>
+              <select name="priority">
+                <option value="">keep priority</option>
+                <option value="low">low</option>
+                <option value="medium">medium</option>
+                <option value="high">high</option>
+                <option value="critical">critical</option>
+              </select>
+              <input name="actor_id" placeholder="actor id" required>
+              <button>Update</button>
+            </form>
+            <form data-action="tasks.assign" class="form inline-form">
+              <input name="id" placeholder="task id" required>
+              <input name="assignee_id" placeholder="assignee id" required>
+              <input name="actor_id" placeholder="actor id" required>
+              <button class="quiet">Assign</button>
+            </form>
+            <form data-action="tasks.status" class="form inline-form">
+              <input name="id" placeholder="task id" required>
+              <select name="new_status">
+                <option value="in_progress">in_progress</option>
+                <option value="done">done</option>
+                <option value="overdue">overdue</option>
+              </select>
+              <input name="actor_id" placeholder="actor id" required>
+              <button class="quiet">Change status</button>
+            </form>
+            <form data-action="tasks.history" class="form inline-form">
+              <input name="id" placeholder="task id" required>
+              <button class="quiet">History</button>
+            </form>
+            <form data-action="tasks.delete" class="form inline-form">
+              <input name="id" placeholder="task id" required>
+              <input name="actor_id" placeholder="actor id" required>
+              <button class="danger">Delete</button>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="calendar">
+        <div class="calendar-layout">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Calendar</h3>
+              <div class="button-row">
+                <button id="prevMonthBtn" class="quiet">Prev</button>
+                <button id="nextMonthBtn" class="quiet">Next</button>
+              </div>
+            </div>
+            <div id="calendarTitle" class="calendar-title"></div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+          </section>
+          <section class="panel">
+            <h3>Events</h3>
+            <div class="filters">
+              <input id="calendarUserId" placeholder="user id">
+              <input id="calendarDays" type="number" min="1" value="7">
+              <button data-action-click="calendar.upcoming" class="quiet">Upcoming</button>
+              <button data-action-click="calendar.stats" class="quiet">Stats</button>
+            </div>
+            <div id="eventsList" class="list"></div>
+          </section>
+        </div>
+        <div class="panel-grid two">
+          <section class="panel">
+            <h3>Create event</h3>
+            <form data-action="calendar.create" class="form">
+              <input name="title" placeholder="title" required>
+              <textarea name="description" rows="3" placeholder="description"></textarea>
+              <select name="event_type">
+                <option value="deadline">deadline</option>
+                <option value="task">task</option>
+                <option value="meeting">meeting</option>
+                <option value="reminder">reminder</option>
+              </select>
+              <input name="user_id" placeholder="user id" required>
+              <input name="ref_id" placeholder="ref id">
+              <input name="ref_type" placeholder="ref type">
+              <input name="start_time" type="datetime-local" required>
+              <input name="end_time" type="datetime-local">
+              <button>Create</button>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Event actions</h3>
+            <form data-action="calendar.update" class="form">
+              <input name="id" placeholder="event id" required>
+              <input name="title" placeholder="title">
+              <textarea name="description" rows="2" placeholder="description"></textarea>
+              <input name="start_time" type="datetime-local">
+              <input name="end_time" type="datetime-local">
+              <input name="updated_by" placeholder="updated by" required>
+              <button>Update</button>
+            </form>
+            <form data-action="calendar.delete" class="form inline-form">
+              <input name="id" placeholder="event id" required>
+              <input name="deleted_by" placeholder="deleted by" required>
+              <button class="danger">Delete</button>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="notifications">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Notifications</h3>
+            <div class="button-row">
+              <button data-action-click="notifications.history">Load</button>
+              <button data-action-click="notifications.unread" class="quiet">Unread count</button>
+              <button data-action-click="notifications.markAllRead" class="quiet">Mark all read</button>
+            </div>
+          </div>
+          <div class="filters">
+            <input id="notifUserId" placeholder="user id">
+          </div>
+          <div id="notificationsList" class="list"></div>
+        </div>
+        <div class="panel-grid two">
+          <section class="panel">
+            <h3>Create notification</h3>
+            <form data-action="notifications.create" class="form">
+              <input name="user_id" placeholder="user id" required>
+              <input name="title" placeholder="title" required>
+              <textarea name="body" rows="3" placeholder="body"></textarea>
+              <select name="category">
+                <option value="system">system</option>
+                <option value="document_assigned">document_assigned</option>
+                <option value="task_assigned">task_assigned</option>
+                <option value="status_changed">status_changed</option>
+                <option value="deadline_reminder">deadline_reminder</option>
+                <option value="overdue">overdue</option>
+              </select>
+              <input name="ref_id" placeholder="ref id">
+              <input name="ref_type" placeholder="ref type">
+              <input name="document_id" placeholder="document id">
+              <input name="task_id" placeholder="task id">
+              <button>Create</button>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Notification actions</h3>
+            <form data-action="notifications.read" class="form inline-form">
+              <input name="id" placeholder="notification id" required>
+              <input name="user_id" placeholder="user id" required>
+              <button>Mark read</button>
+            </form>
+            <form data-action="notifications.delete" class="form inline-form">
+              <input name="id" placeholder="notification id" required>
+              <input name="user_id" placeholder="user id" required>
+              <button class="danger">Delete</button>
+            </form>
+            <form data-action="notifications.preferences" class="form">
+              <input name="user_id" placeholder="user id" required>
+              <label class="check"><input name="email_enabled" type="checkbox" checked> email</label>
+              <label class="check"><input name="push_enabled" type="checkbox" checked> push</label>
+              <label class="check"><input name="deadline_notif" type="checkbox" checked> deadline</label>
+              <label class="check"><input name="assigned_notif" type="checkbox" checked> assigned</label>
+              <label class="check"><input name="status_notif" type="checkbox" checked> status</label>
+              <label class="check"><input name="overdue_notif" type="checkbox" checked> overdue</label>
+              <button class="quiet">Save preferences</button>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="mail">
+        <div class="panel-grid two">
+          <section class="panel">
+            <h3>Send email</h3>
+            <form data-action="mail.send" class="form">
+              <input name="to" type="email" placeholder="recipient" required>
+              <input name="subject" placeholder="subject">
+              <textarea name="body" rows="5" placeholder="body"></textarea>
+              <input name="user_id" placeholder="user id">
+              <input name="template_id" placeholder="template id">
+              <input name="category" placeholder="category">
+              <button>Send</button>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Bulk email</h3>
+            <form data-action="mail.bulk" class="form">
+              <textarea name="to" rows="4" placeholder="one email per line" required></textarea>
+              <input name="subject" placeholder="subject">
+              <textarea name="body" rows="5" placeholder="body"></textarea>
+              <input name="template_id" placeholder="template id">
+              <input name="category" placeholder="category">
+              <button>Send bulk</button>
+            </form>
+          </section>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Mail jobs and templates</h3>
+            <div class="button-row">
+              <button data-action-click="mail.jobs">Jobs</button>
+              <button data-action-click="mail.templates" class="quiet">Templates</button>
+              <button data-action-click="mail.stats" class="quiet">Stats</button>
+            </div>
+          </div>
+          <div id="mailTable" class="table"></div>
+        </div>
+      </section>
+
+      <section class="view" id="tools">
+        <div class="panel-grid two">
+          <section class="panel">
+            <h3>Raw request</h3>
+            <form data-action="tools.raw" class="form">
+              <select name="method">
+                <option>GET</option>
+                <option>POST</option>
+                <option>PUT</option>
+                <option>PATCH</option>
+                <option>DELETE</option>
+              </select>
+              <input name="path" value="/api/v1/documents">
+              <textarea name="body" rows="8" placeholder='{"key":"value"}'></textarea>
+              <button>Send</button>
+            </form>
+          </section>
+          <section class="panel">
+            <h3>Response</h3>
+            <pre id="output">{}</pre>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="/assets/app.js"></script>
+</body>
+</html>
